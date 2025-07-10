@@ -12,5 +12,7 @@ En resumen, el proyecto ofrece una herramienta práctica y escalable que puede i
 
 n8n, PubChem API, google Sheets, Telegram, gmail.
 
-**Instrucciones de Uso**
+**Funcionamiento**
+
+
 
