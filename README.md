@@ -14,7 +14,7 @@ n8n, PubChem API, google Sheets, Telegram, gmail.
 
 **Funcionamiento**
 
-En la siguiente imagen se muestra e flujo de n8n usado
+En la siguiente imagen se muestra el flujo de n8n usado
 
 ![Flujo de n8n](https://github.com/Robchem95/N8N-Incompatibilidad-Quimica/blob/main/Imagenes%20n8n%20incompatibilidad%20qu%C3%ACmica/Captura%20de%20pantalla%202025-07-10%20105304.png)
 
