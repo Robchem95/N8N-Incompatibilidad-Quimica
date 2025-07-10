@@ -1,0 +1,680 @@
+{
+  "name": "Incompatibilidad Química",
+  "nodes": [
+    {
+      "parameters": {
+        "chatId": "1583342930",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3860,
+        -2120
+      ],
+      "id": "a20bbccd-2882-48cd-8219-eb0fd982c1b5",
+      "name": "Send a text message",
+      "webhookId": "48d05783-8a2f-4836-a706-e9aeccd9379c",
+      "credentials": {
+        "telegramApi": {
+          "id": "CnYyWemmMyILmt7v",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -4680,
+        -2340
+      ],
+      "id": "afaca2aa-c652-4c72-a9eb-80476bb53a13",
+      "name": "Almacenamiento Bot",
+      "webhookId": "13fe8555-e667-4f2e-8444-abcd94ebe297",
+      "credentials": {
+        "telegramApi": {
+          "id": "CnYyWemmMyILmt7v",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const texto = $json.message.text.trim(); // Elimina espacios al inicio y final\nconst partes = texto.split(/\\s+/); // Divide el texto en partes usando uno o más espacios\n\nreturn [{\n  json: {\n    comando: partes[0] || null,\n    reactivo: partes[1] || null,\n    compartimento: partes[2] || null\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4480,
+        -2340
+      ],
+      "id": "34f9327c-a6ba-4cf3-b6ae-985c8b0d6491",
+      "name": "Estructurar Datos"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1HWDFUc_vdQ0sldRaTYlzkjxzAKI5QrYpZ-QaObBfjpQ",
+          "mode": "list",
+          "cachedResultName": "Inventario de Laboratorio Químico",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HWDFUc_vdQ0sldRaTYlzkjxzAKI5QrYpZ-QaObBfjpQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HWDFUc_vdQ0sldRaTYlzkjxzAKI5QrYpZ-QaObBfjpQ/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Compartimento",
+              "lookupValue": "={{$json[\"compartimento\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -4280,
+        -2340
+      ],
+      "id": "c1c2fec9-492d-4fca-8736-e5b579312f18",
+      "name": "Inventario almacenado",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eVUZRN7JUY8HZaQO",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const nuevo = $node[\"Estructurar Datos\"].json[\"reactivo\"]; // O el nodo donde viene el reactivo nuevo\n\nreturn items.map(item => {\n  return {\n    json: {\n      reactivo_nuevo: nuevo,\n      reactivo_existente: item.json.Reactivo,\n      compartimento: $input.first().json.Compartimento// nombre exacto desde Google Sheets\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4080,
+        -2340
+      ],
+      "id": "db571a0d-ff67-4fd7-b092-037cc7241936",
+      "name": "Eleccion de reactivos"
+    },
+    {
+      "parameters": {
+        "url": "=https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{{ $json[\"reactivo_nuevo\"] }}/cids/JSON",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3880,
+        -2340
+      ],
+      "id": "e4049008-ce5d-4f47-b927-9e022b3c92df",
+      "name": "Elecciòn CID pubchem"
+    },
+    {
+      "parameters": {
+        "url": "=https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound//{{ $json[\"IdentifierList\"][\"CID\"][0] }}/JSON/?heading=Storage-Conditions",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3680,
+        -2340
+      ],
+      "id": "7fd3c240-3f5d-4378-b6f2-32fcc0414cad",
+      "name": "Extracciòn secciòn"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const resultado = [];\nconst registro = $json.Record; // ACCESO CORRECTO\nconst secciones = registro.Section;\nconst nombreCompuesto = registro.RecordTitle;\n\nfunction buscarTextoStorage(secciones) {\n\tfor (const sec of secciones) {\n\t\tif (sec.TOCHeading === \"Storage Conditions\" && sec.Information) {\n\t\t\tfor (const info of sec.Information) {\n\t\t\t\tif (info.Value && info.Value.StringWithMarkup) {\n\t\t\t\t\tfor (const str of info.Value.StringWithMarkup) {\n\t\t\t\t\t\tresultado.push(str.String);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\t// Buscar recursivamente en subsecciones\n\t\tif (sec.Section) {\n\t\t\tbuscarTextoStorage(sec.Section);\n\t\t}\n\t}\n}\n\nbuscarTextoStorage(secciones);\n\nreturn {\n\tjson: {\n        reactivo_nuevo:$('Eleccion de reactivos').item.json.reactivo_nuevo,\n\t\treactivo_almacenado: $('Inventario almacenado').item.json.Reactivo,\n        compartimento: $('Estructurar Datos').item.json.compartimento,\n\t\tDescription: resultado\n\t}\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3460,
+        -2340
+      ],
+      "id": "2de0ccef-1430-41e0-8b06-aa2faa4503bc",
+      "name": "informaciòn especìfica"
+    },
+    {
+      "parameters": {
+        "url": "=https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{{ $('Eleccion de reactivos').item.json.reactivo_existente }}/cids/JSON",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3260,
+        -2340
+      ],
+      "id": "0a1b8b51-483d-49f5-9b73-326f2fe2edb4",
+      "name": "Extracciòn nombres"
+    },
+    {
+      "parameters": {
+        "url": "=https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{{ $json.IdentifierList.CID[0] }}/property/Title,MolecularFormula/JSON\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3060,
+        -2340
+      ],
+      "id": "c77eef2c-4d4a-47d0-9c56-4ed8c9ec2a08",
+      "name": "Extracciòn nombre"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04b2c0e2-3120-4f11-851e-49557a3ffa36",
+              "name": "reactivo_existente",
+              "value": "={{ $items(\"Eleccion de reactivos\")[ $itemIndex ].json[\"reactivo_existente\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "e5f048eb-e725-4f8c-bf37-d62d383fc341",
+              "name": "nombre",
+              "value": "={{ $items(\"Extracciòn nombre\")[ $itemIndex ].json[\"PropertyTable\"][\"Properties\"][0][\"Title\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "47d1d63f-4692-4c7b-a1d3-1cb429803464",
+              "name": "compartimento",
+              "value": "={{ $items(\"informaciòn especìfica\")[ $itemIndex ].json[\"compartimento\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "36689b95-ce48-4505-aba8-36433176a090",
+              "name": "reactivo_nuevo",
+              "value": "={{ $items(\"informaciòn especìfica\")[ $itemIndex ].json[\"reactivo_nuevo\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "8a762488-9f71-40ef-9698-c06ea5635d58",
+              "name": "Description",
+              "value": "={{ $items(\"informaciòn especìfica\")[ $itemIndex ].json[\"Description\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2840,
+        -2340
+      ],
+      "id": "7bb81d2a-d11e-45e9-a65e-eeaa574f942c",
+      "name": "Integraciòn de informes"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import re\n\noutput = []\n\ndef simplificar_palabra(palabra):\n    return re.sub(r'(es|s)$', '', palabra.lower())\n\nprimer_false = None\n\nfor item in items:\n    nombre = str(item['json'].get('nombre', '')).strip().lower()\n    descripcion_raw = item['json'].get('Description', '')\n\n    # Normalizar descripción\n    if isinstance(descripcion_raw, list):\n        descripcion = ' '.join(descripcion_raw).lower()\n    else:\n        descripcion = str(descripcion_raw).lower()\n\n    # Dividir nombre en palabras clave\n    palabras_nombre = re.findall(r'\\w+', nombre)\n    palabras_nombre = [simplificar_palabra(p) for p in palabras_nombre]\n\n    # Dividir descripción en palabras\n    palabras_descripcion = re.findall(r'\\w+', descripcion)\n    palabras_descripcion = [simplificar_palabra(p) for p in palabras_descripcion]\n\n    # Buscar coincidencias\n    coincidencias = [p for p in palabras_nombre if p in palabras_descripcion]\n    contiene_nombre = len(coincidencias) > 0\n\n    resultado = {\n        \"json\": {\n            \"nombre\": nombre,\n            \"descripcion\": descripcion,\n            \"coincidencias\": coincidencias,\n            \"contiene_nombre\": contiene_nombre,\n            \"reactivo_existente\": item['json'].get(\"reactivo_existente\", \"\"),\n            \"reactivo_nuevo\": item['json'].get(\"reactivo_nuevo\", \"\"),\n            \"compartimento\": item['json'].get(\"compartimento\")\n        }\n    }\n\n    if contiene_nombre:\n        return [resultado]  # Retorna inmediatamente el primer true\n\n    if primer_false is None:\n        primer_false = resultado  # Guarda el primer false si no hay ninguno aún\n\n# Si todos fueron false, retorna solo el primero\nreturn [primer_false] if primer_false else []\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2640,
+        -2340
+      ],
+      "id": "99ab36d9-a444-40c4-8be3-ac59756777a1",
+      "name": "Busqueda de coincidencias"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f42d3604-72a0-4383-90a9-b9d4e3a91013",
+              "leftValue": "={{$json[\"contiene_nombre\"]}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4660,
+        -1960
+      ],
+      "id": "a1053801-f68b-47a0-9c6c-3d5240c9ec25",
+      "name": "Condicional de Compatibilidad"
+    },
+    {
+      "parameters": {
+        "jsCode": "const nuevo = items[0].json.reactivo_nuevo;\n\nlet lista = items.map(i => `- ${i.json.reactivo_existente}`).join(\"\\n\");\n\nlet mensaje = `⚠️ *¿Papi quiere explotar el laboratorio? pille que hay una Incompatibilidad química detectada*\\n\\n`;\nmensaje += `🧪 Reactivo nuevo: *${nuevo}*\\n`;\nmensaje += `❌ Incompatible con:\\n${lista}`;\n\nreturn [{\n  json: {\n    asunto: `⚠️ Incompatibilidad: ${nuevo}`,\n    mensaje: mensaje\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4320,
+        -1980
+      ],
+      "id": "ceeb7761-72bd-4e25-a9ca-54f092acedc2",
+      "name": "Estructuraciòn del Mensaje"
+    },
+    {
+      "parameters": {
+        "jsCode": "const nuevo = items[0].json.reactivo_nuevo;\n\nlet lista = items.map(i => `- ${i.json.reactivo_existente}`).join(\"\\n\");\n\nlet mensaje = `*Papi todo bien guardelo si quiere, Compatibilidad química detectada*\\n\\n`;\nmensaje += `🧪 Reactivo nuevo: *${nuevo}*\\n`;\nmensaje += `❌ compatible con:\\n${lista}`;\n\nreturn [{\n  json: {\n    asunto: `⚠️ compatibilidad: ${nuevo}`,\n    mensaje: mensaje\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4300,
+        -1600
+      ],
+      "id": "5f04a614-778c-42a9-ba82-9d443418ad48",
+      "name": "Estructura del Mensaje"
+    },
+    {
+      "parameters": {
+        "jsCode": "const asunto = items[0].json.asunto;\nconst mensaje = items[0].json.mensaje;\n\nconst html = `\n  <div style=\"font-family: Arial, sans-serif; padding: 20px; background-color: #fff3cd; border: 2px solid #ffa000; border-radius: 10px;\">\n    <h2 style=\"color: #d32f2f;\">${asunto}</h2>\n    <p style=\"white-space: pre-wrap;\">${mensaje}</p>\n  </div>\n`;\n\nreturn [{\n  json: {\n    html\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3860,
+        -1900
+      ],
+      "id": "3e02303b-648f-47ab-8770-88ef272894df",
+      "name": "Generaciòn de Imagen"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hcti.io/v1/image",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "={{ $json.html }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3640,
+        -1900
+      ],
+      "id": "262c5adf-1df3-4768-a651-32986e52ff7f",
+      "name": "Generar HTML",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "ZuAyhTulXLarj34K",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "robchem952@gmail.com",
+        "subject": "\t🚨 Alerta: Incompatibilidad química detectada",
+        "message": "=<p>⚠️ Se detectó una incompatibilidad química:</p>\n<img src=\"{{ $json.url }}\" alt=\"Alerta de incompatibilidad\" style=\"max-width: 600px;\" />",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -3420,
+        -1900
+      ],
+      "id": "9ddcf836-dd4f-492a-96bd-ebe4cc87e362",
+      "name": "Envio de mensaje email",
+      "webhookId": "82b81f0f-95a5-44ae-8572-e754ff84e2c2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "QTH8kI7n4cQ7HW0d",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1583342930",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -4080,
+        -1600
+      ],
+      "id": "64f2fbf1-e3f9-480d-82af-09eff15c5f8c",
+      "name": "Envio de confirmacion",
+      "webhookId": "48d05783-8a2f-4836-a706-e9aeccd9379c",
+      "credentials": {
+        "telegramApi": {
+          "id": "CnYyWemmMyILmt7v",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1HWDFUc_vdQ0sldRaTYlzkjxzAKI5QrYpZ-QaObBfjpQ",
+          "mode": "list",
+          "cachedResultName": "Inventario de Laboratorio Químico",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HWDFUc_vdQ0sldRaTYlzkjxzAKI5QrYpZ-QaObBfjpQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HWDFUc_vdQ0sldRaTYlzkjxzAKI5QrYpZ-QaObBfjpQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Reactivo": "={{ $json.reactivo_nuevo }}",
+            "Compartimento": "={{ $json.compartimento }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Reactivo",
+              "displayName": "Reactivo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Compartimento",
+              "displayName": "Compartimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -4300,
+        -1380
+      ],
+      "id": "cc713e26-bd8a-49bc-8f44-d8ad61390d5c",
+      "name": "Almacenamiento nuevo reactivo",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eVUZRN7JUY8HZaQO",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "Almacenamiento Bot": {
+      "main": [
+        [
+          {
+            "node": "Estructurar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estructurar Datos": {
+      "main": [
+        [
+          {
+            "node": "Inventario almacenado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inventario almacenado": {
+      "main": [
+        [
+          {
+            "node": "Eleccion de reactivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eleccion de reactivos": {
+      "main": [
+        [
+          {
+            "node": "Elecciòn CID pubchem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elecciòn CID pubchem": {
+      "main": [
+        [
+          {
+            "node": "Extracciòn secciòn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracciòn secciòn": {
+      "main": [
+        [
+          {
+            "node": "informaciòn especìfica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "informaciòn especìfica": {
+      "main": [
+        [
+          {
+            "node": "Extracciòn nombres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracciòn nombres": {
+      "main": [
+        [
+          {
+            "node": "Extracciòn nombre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracciòn nombre": {
+      "main": [
+        [
+          {
+            "node": "Integraciòn de informes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Integraciòn de informes": {
+      "main": [
+        [
+          {
+            "node": "Busqueda de coincidencias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busqueda de coincidencias": {
+      "main": [
+        [
+          {
+            "node": "Condicional de Compatibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Condicional de Compatibilidad": {
+      "main": [
+        [
+          {
+            "node": "Estructuraciòn del Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Estructura del Mensaje",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Almacenamiento nuevo reactivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estructuraciòn del Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Generaciòn de Imagen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estructura del Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Envio de confirmacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generaciòn de Imagen": {
+      "main": [
+        [
+          {
+            "node": "Generar HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar HTML": {
+      "main": [
+        [
+          {
+            "node": "Envio de mensaje email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e8ed29ac-2e93-41ee-a043-774cdf243499",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b8123005eccf77b7c22aff1e7e8d1dc432579da354e3697279acd178e9907b9"
+  },
+  "id": "8UIo9TPXoYX7ecE1",
+  "tags": []
+}
