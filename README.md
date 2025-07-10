@@ -44,7 +44,7 @@ El nodo de "integracion de informes" organiza los datos necesarios para llevar a
 De acuerdo a la informaciòn arrojada en las coincidencias el nodo "condiciòn de compatibilidad" determina el camino para las notificaciones. 
 Si es incompatible notifica tanto con un mensaje en telegram y con una imagen enviada a un mail. 
 
-<img src="https://github.com/Robchem95/N8N-Incompatibilidad-Quimica/blob/main/Imagenes%20n8n%20incompatibilidad%20qu%C3%ACmica/4642e649-53aa-4af2-979c-99f5897f8fb6.jpg" width="300"/>
+<img src="https://github.com/Robchem95/N8N-Incompatibilidad-Quimica/blob/main/Imagenes%20n8n%20incompatibilidad%20qu%C3%ACmica/d9faf1c4-345f-4930-8b29-e07b5069af05.jpg" width="300"/>
 
 <img src="https://github.com/Robchem95/N8N-Incompatibilidad-Quimica/blob/main/Imagenes%20n8n%20incompatibilidad%20qu%C3%ACmica/8b09776f-3cc6-4c75-b37c-23c6148cf9dc.jpg" width="300"/>
 
